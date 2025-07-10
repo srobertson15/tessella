@@ -1,4 +1,5 @@
 import streamlit as st
+
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -8,8 +9,18 @@ import os
 st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
-
-st.sidebar.header("Upload Data")
+# --- Welcome message in sidebar ---
+st.sidebar.markdown("""
+<div style='background-color:#f0f4fa;padding:1em 0.7em 1em 0.7em;border-radius:8px;margin-bottom:1.2em;'>
+  <h3 style='color:#2a4d69;margin-bottom:0.3em;'>Welcome to the Tessella demo!</h3>
+  <span style='color:#4f5d75;font-size:1em;'>
+    Explore interactive scientific keyword mapping, clustering, and visualization.<br>
+    The bundled demo data has been automatically extracted from nearly 400k clean fuels publications.<br>
+    Find different filtering, scaling, and sorting options in the sidebar.<br>
+    Some charts may take a few seconds to load, and some data may not be shown due to the large dataset size.<br>
+  </span>
+</div>
+""", unsafe_allow_html=True)
 
 # --- Demo data fallback logic ---
 DEMO_DATA_DIR = os.path.join(os.path.dirname(__file__), "demo_data")
@@ -154,11 +165,28 @@ if selected_tab == "Occurrence":
             alias_label_map = {alias: truncate_label(alias) for alias in sorted_aliases}
             grouped_visible = grouped[grouped['alias'].isin(sorted_aliases)].copy()
             grouped_visible['alias'] = pd.Categorical(grouped_visible['alias'], categories=sorted_aliases, ordered=True)
-            min_occ = int(grouped['occurrence'].min())
-            max_occ = int(grouped['occurrence'].max())
+            if not grouped['occurrence'].empty:
+                min_occ = int(grouped['occurrence'].min())
+                max_occ = int(grouped['occurrence'].max())
+            else:
+                min_occ = 0
+                max_occ = 1
+            bar_stacks = grouped_visible.groupby('alias')['occurrence'].sum()
+            if not bar_stacks.empty:
+                min_stack = int(bar_stacks.min())
+                max_stack = int(bar_stacks.max())
+            else:
+                min_stack = 0
+                max_stack = 1
             col1, col2 = st.sidebar.columns(2)
             occ_color_min = col1.number_input("Occurrence Color Min", min_value=0, max_value=max_occ, value=min_occ, key="occ_color_min")
             occ_color_max = col2.number_input("Occurrence Color Max", min_value=0, max_value=max_occ, value=max_occ, key="occ_color_max")
+            occ_xaxis_min = 0
+            occ_xaxis_max = st.sidebar.number_input(
+                "Occurrence X-Axis Max", min_value=1, max_value=int(max_stack*1.1), value=int(max_stack*1.05), key="occ_xaxis_max"
+            )
+            # Always set xaxis_min to 0, only xaxis_max is user-editable
+            xaxis_min, xaxis_max = occ_xaxis_min, occ_xaxis_max
             color_seq = getattr(px.colors.sequential, color_scale) if hasattr(px.colors.sequential, color_scale) else px.colors.sequential.Viridis
             import plotly.graph_objects as go
             years = sorted(grouped_visible['year'].unique())
@@ -204,17 +232,7 @@ if selected_tab == "Occurrence":
                 hoverinfo='none',
                 showlegend=False
             ))
-            bar_stacks = grouped_visible.groupby('alias')['occurrence'].sum()
-            max_stack = bar_stacks.max()
-            min_stack = bar_stacks.min()
-            xaxis_min, xaxis_max = st.sidebar.slider(
-                "Occurrence X-Axis Range",
-                min_value=int(min_stack),
-                max_value=int(max_stack*1.1),
-                value=(0, int(max_stack*1.05)),
-                step=1,
-                key="occ_xaxis_range"
-            )
+            # Remove redefinition of bar_stacks, min_stack, max_stack, and xaxis_min/xaxis_max here
             fig.update_layout(
                 barmode='stack',
                 title="Alias Occurrence Over Time (Color by Occurrence)",
@@ -295,11 +313,27 @@ elif selected_tab == "CoOccurrence":
             combo_label_map = {combo: truncate_combo(combo) for combo in sorted_combos}
             grouped_visible = grouped[grouped['combo'].isin(sorted_combos)].copy()
             grouped_visible['combo'] = pd.Categorical(grouped_visible['combo'], categories=sorted_combos, ordered=True)
-            min_coocc = int(grouped['cooccurrence'].min())
-            max_coocc = int(grouped['cooccurrence'].max())
+            if not grouped['cooccurrence'].empty:
+                min_coocc = int(grouped['cooccurrence'].min())
+                max_coocc = int(grouped['cooccurrence'].max())
+            else:
+                min_coocc = 0
+                max_coocc = 1
+            bar_stacks = grouped_visible.groupby('combo')['cooccurrence'].sum()
+            if not bar_stacks.empty:
+                min_stack = int(bar_stacks.min())
+                max_stack = int(bar_stacks.max())
+            else:
+                min_stack = 0
+                max_stack = 1
             col1, col2 = st.sidebar.columns(2)
             coocc_color_min = col1.number_input("Cooccurrence Color Min", min_value=0, max_value=max_coocc, value=min_coocc, key="coocc_color_min")
             coocc_color_max = col2.number_input("Cooccurrence Color Max", min_value=0, max_value=max_coocc, value=max_coocc, key="coocc_color_max")
+            coocc_xaxis_min = 0
+            coocc_xaxis_max = st.sidebar.number_input(
+                "Cooccurrence X-Axis Max", min_value=1, max_value=int(max_stack*1.1), value=int(max_stack*1.05), key="coocc_xaxis_max"
+            )
+            xaxis_min, xaxis_max = coocc_xaxis_min, coocc_xaxis_max
             color_seq = getattr(px.colors.sequential, color_scale) if hasattr(px.colors.sequential, color_scale) else px.colors.sequential.Viridis
             import plotly.graph_objects as go
             years = sorted(grouped_visible['year'].unique())
@@ -348,14 +382,7 @@ elif selected_tab == "CoOccurrence":
             bar_stacks = grouped_visible.groupby('combo')['cooccurrence'].sum()
             max_stack = bar_stacks.max()
             min_stack = bar_stacks.min()
-            xaxis_min, xaxis_max = st.sidebar.slider(
-                "Cooccurrence X-Axis Range",
-                min_value=int(min_stack),
-                max_value=int(max_stack*1.1),
-                value=(0, int(max_stack*1.05)),
-                step=1,
-                key="coocc_xaxis_range"
-            )
+            xaxis_min, xaxis_max = coocc_xaxis_min, coocc_xaxis_max
             fig.update_layout(
                 barmode='stack',
                 title="Alias Co-Occurrence Over Time (Color by Cooccurrence)",
