@@ -3,3 +3,4 @@ pandas
 numpy
 plotly
 pycountry
+zipfile36; python_version<'3.7'

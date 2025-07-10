@@ -15,37 +15,36 @@ DEMO_DATA_DIR = os.path.join(os.path.dirname(__file__), "demo_data")
 def demo_path(filename):
     return os.path.join(DEMO_DATA_DIR, filename)
 
-occ_file = st.sidebar.file_uploader("Occurrence Table (CSV)", type="csv")
-if occ_file is None:
-    try:
-        occ_file = open(demo_path("lookup_occurrence.csv"), "rb")
-    except Exception:
-        occ_file = None
 
-coocc_file = st.sidebar.file_uploader("Cooccurrence Table (CSV)", type="csv")
-if coocc_file is None:
-    try:
-        coocc_file = open(demo_path("lookup_cooccurrence.csv"), "rb")
-    except Exception:
-        coocc_file = None
+# --- Folder upload for all required CSVs ---
+import zipfile
+import tempfile
 
-country_file = st.sidebar.file_uploader("Country Occurrence Table (CSV)", type="csv")
-if country_file is None:
-    try:
-        country_file = open(demo_path("lookup_country_occurrence.csv"), "rb")
-    except Exception:
-        country_file = None
+st.sidebar.markdown("### Upload Data Folder (ZIP)")
+uploaded_zip = st.sidebar.file_uploader("Upload a ZIP folder containing all 4 required CSVs", type=["zip"])
 
-fact_alias_cluster_file = st.sidebar.file_uploader("Fact Alias Cluster Table (CSV)", type="csv")
-if fact_alias_cluster_file is None:
-    try:
-        fact_alias_cluster_file = open(demo_path("fact_alias_cluster.csv"), "rb")
-    except Exception:
-        fact_alias_cluster_file = None
+def get_csv_from_zip(zip_file, filename):
+    if zip_file is None:
+        # Fallback to demo data
+        try:
+            return open(demo_path(filename), "rb")
+        except Exception:
+            return None
+    with zipfile.ZipFile(zip_file) as z:
+        if filename in z.namelist():
+            return z.open(filename)
+        else:
+            return None
 
-# --- Tab selection for sidebar controls ---
+occ_file = get_csv_from_zip(uploaded_zip, "lookup_occurrence.csv")
+coocc_file = get_csv_from_zip(uploaded_zip, "lookup_cooccurrence.csv")
+country_file = get_csv_from_zip(uploaded_zip, "lookup_country_occurrence.csv")
+fact_alias_cluster_file = get_csv_from_zip(uploaded_zip, "fact_alias_cluster.csv")
+
+
+# --- Main Dashboard Tabs ---
 tab_names = ["Occurrence", "CoOccurrence", "Geo Map", "Sankey"]
-selected_tab = st.sidebar.radio("Select Dashboard Tab", tab_names, index=0, key="sidebar_tab_select")
+tab1, tab2, tab3, tab4 = st.tabs(tab_names)
 
 # --- Load Data ---
 @st.cache_data
@@ -57,10 +56,39 @@ coocc = load_csv(coocc_file)
 country = load_csv(country_file)
 fact_alias_cluster = load_csv(fact_alias_cluster_file)
 
-# --- Sidebar Filters ---
+def show_global_sidebar(tab_key=None):
+    # --- Global Date Range Slider (works for all tabs) ---
+    min_dates = []
+    max_dates = []
+    if occ is not None:
+        occ['month'] = pd.to_datetime(occ['month'], errors='coerce')
+        min_dates.append(occ['month'].min())
+        max_dates.append(occ['month'].max())
+    if coocc is not None and 'month' in coocc.columns:
+        coocc['month'] = pd.to_datetime(coocc['month'], errors='coerce')
+        min_dates.append(coocc['month'].min())
+        max_dates.append(coocc['month'].max())
+    if country is not None and 'month' in country.columns:
+        country['month'] = pd.to_datetime(country['month'], errors='coerce')
+        min_dates.append(country['month'].min())
+        max_dates.append(country['month'].max())
 
-
-# --- Global Date Range Slider (works for all tabs) ---
+    if min_dates and max_dates:
+        global_min_date = min([d for d in min_dates if pd.notnull(d)]).date()
+        global_max_date = max([d for d in max_dates if pd.notnull(d)]).date()
+        # Allow passing a unique key for each tab
+        slider_key = f"date_range_slider_{tab_key}" if tab_key else "global_date_range_slider"
+        date_range = st.sidebar.slider(
+            "Date Range",
+            min_value=global_min_date,
+            max_value=global_max_date,
+            value=(global_min_date, global_max_date),
+            format="YYYY-MM",
+            key=slider_key
+        )
+    else:
+        date_range = (None, None)
+    return date_range
 min_dates = []
 max_dates = []
 if occ is not None:
@@ -76,39 +104,20 @@ if country is not None and 'month' in country.columns:
     min_dates.append(country['month'].min())
     max_dates.append(country['month'].max())
 
-if min_dates and max_dates:
-    global_min_date = min([d for d in min_dates if pd.notnull(d)]).date()
-    global_max_date = max([d for d in max_dates if pd.notnull(d)]).date()
-    date_range = st.sidebar.slider(
-        "Date Range",
-        min_value=global_min_date,
-        max_value=global_max_date,
-        value=(global_min_date, global_max_date),
-        format="YYYY-MM"
-    )
-else:
-    date_range = (None, None)
 
-# --- Occurrence-specific filters ---
+# Remove duplicate global date range slider logic (already handled in show_global_sidebar)
 
 
-# --- Ensure 'month' columns in coocc and country are datetime for slider compatibility ---
-if coocc is not None and 'month' in coocc.columns:
-    coocc['month'] = pd.to_datetime(coocc['month'], errors='coerce')
-if country is not None and 'month' in country.columns:
-    country['month'] = pd.to_datetime(country['month'], errors='coerce')
 
-
-# --- Customization Controls ---
-st.sidebar.header("Customization")
-color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"])
-axis_scale = st.sidebar.radio("Axis Scale", ["Linear", "Log"])
-
-# --- Main Dashboard ---
-tab1, tab2, tab3, tab4 = st.tabs(tab_names)
+## --- Main Dashboard ---
+# Context-dependent sidebar controls: only show controls for the active tab
 
 with tab1:
-    if occ is not None and selected_tab == "Occurrence":
+    date_range = show_global_sidebar(tab_key="occ")
+    st.sidebar.header("Customization")
+    color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="occ_color_scale")
+    axis_scale = st.sidebar.radio("Axis Scale", ["Linear", "Log"], key="occ_axis_scale")
+    if occ is not None:
         # --- Occurrence-specific filters ---
         aliases = sorted(occ['alias'].unique())
         occ_alias_filter = st.sidebar.multiselect("Filter by Alias", aliases, default=aliases, key="occ_alias_filter")
@@ -223,7 +232,11 @@ with tab1:
             st.warning("No occurrence data available for the selected date range or filters. Try adjusting the date range, alias, or cluster filters, or check your input file.")
 
 with tab2:
-    if coocc is not None and selected_tab == "CoOccurrence":
+    date_range = show_global_sidebar(tab_key="coocc")
+    st.sidebar.header("Customization")
+    color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="coocc_color_scale")
+    axis_scale = st.sidebar.radio("Axis Scale", ["Linear", "Log"], key="coocc_axis_scale")
+    if coocc is not None:
         # --- Cooccurrence-specific filters in sidebar (separate for alias 1 and alias 2) ---
         coocc_aliases_1 = sorted(coocc['alias_row'].unique())
         coocc_aliases_2 = sorted(coocc['alias_col'].unique())
@@ -360,7 +373,11 @@ with tab2:
             st.warning("No co-occurrence data available for the selected date range or filters. Try adjusting the date range, alias, or cluster filters, or check your input file.")
 
 with tab3:
-    if country is not None and selected_tab == "Geo Map":
+    date_range = show_global_sidebar(tab_key="geo")
+    st.sidebar.header("Customization")
+    color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="geo_color_scale")
+    axis_scale = st.sidebar.radio("Axis Scale", ["Linear", "Log"], key="geo_axis_scale")
+    if country is not None:
         # Sidebar filter for countries
         all_countries = sorted(country['country'].dropna().unique())
         country_filter = st.sidebar.multiselect("Filter by Country", all_countries, default=all_countries, key="geo_country_filter")
@@ -413,8 +430,13 @@ with tab3:
         else:
             st.warning("No country data available for the selected date range. Try adjusting filters or check your input file.")
 
+
 with tab4:
-    if coocc is not None and fact_alias_cluster is not None and selected_tab == "Sankey":
+    date_range = show_global_sidebar(tab_key="sankey")
+    st.sidebar.header("Customization")
+    color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="sankey_color_scale")
+    axis_scale = st.sidebar.radio("Axis Scale", ["Linear", "Log"], key="sankey_axis_scale")
+    if coocc is not None and fact_alias_cluster is not None:
         if country is not None:
             # Sidebar filters for Sankey
             all_countries = sorted(country['country'].dropna().unique())
@@ -473,12 +495,6 @@ with tab4:
 
 # --- Customization Controls ---
 
-
-# --- Download Buttons ---
-if occ is not None:
-    st.sidebar.download_button("Download Occurrence CSV", occ.to_csv(index=False), "occurrence.csv")
-if coocc is not None:
-    st.sidebar.download_button("Download CoOccurrence CSV", coocc.to_csv(index=False), "cooccurrence.csv")
 
 st.sidebar.markdown("---")
 st.sidebar.info("This dashboard is powered by Streamlit and Plotly.")
