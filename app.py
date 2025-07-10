@@ -10,18 +10,17 @@ import os
 st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
-# --- Welcome message in sidebar ---
-st.sidebar.markdown("""
-<div style='background-color:#f0f4fa;padding:1em 0.7em 1em 0.7em;border-radius:8px;margin-bottom:1.2em;'>
-  <h3 style='color:#2a4d69;margin-bottom:0.3em;'>Welcome to the Tessella demo!</h3>
-  <span style='color:#4f5d75;font-size:1em;'>
-    Explore interactive scientific keyword mapping, clustering, and visualization.<br>
-    The bundled demo data has been automatically extracted from nearly 400k clean fuels publications.<br>
-    Find different filtering, scaling, and sorting options in the sidebar.<br>
-    Some charts may take a few seconds to load, and some data may not be shown due to the large dataset size.<br>
-  </span>
-</div>
-""", unsafe_allow_html=True)
+# --- Welcome message in sidebar (robust for Streamlit Cloud) ---
+st.sidebar.info(
+    """### Welcome to the Tessella demo!
+
+Explore interactive scientific keyword mapping, clustering, and visualization.
+
+The bundled demo data has been automatically extracted from nearly 400k clean fuels publications.
+
+Find different filtering, scaling, and sorting options in the sidebar. Some charts may take a few seconds to load, and some data may not be shown due to the large dataset size.
+"""
+)
 
 # --- Demo data fallback logic ---
 DEMO_DATA_DIR = os.path.join(os.path.dirname(__file__), "demo_data")
