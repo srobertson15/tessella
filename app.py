@@ -8,6 +8,7 @@ import os
 st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
+
 st.sidebar.header("Upload Data")
 
 # --- Demo data fallback logic ---
@@ -42,9 +43,10 @@ country_file = get_csv_from_zip(uploaded_zip, "lookup_country_occurrence.csv")
 fact_alias_cluster_file = get_csv_from_zip(uploaded_zip, "fact_alias_cluster.csv")
 
 
-# --- Main Dashboard Tabs ---
+
+# --- Main Dashboard Tabs (Sidebar tab selector for context-dependent controls) ---
 tab_names = ["Occurrence", "CoOccurrence", "Geo Map", "Sankey"]
-tab1, tab2, tab3, tab4 = st.tabs(tab_names)
+selected_tab = st.sidebar.radio("Select Chart", tab_names, key="main_tab_selector")
 
 # --- Load Data ---
 @st.cache_data
@@ -110,9 +112,9 @@ if country is not None and 'month' in country.columns:
 
 
 ## --- Main Dashboard ---
-# Context-dependent sidebar controls: only show controls for the active tab
 
-with tab1:
+# --- Main Dashboard Content: Only show controls/content for the selected tab ---
+if selected_tab == "Occurrence":
     date_range = show_global_sidebar(tab_key="occ")
     st.sidebar.header("Customization")
     color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="occ_color_scale")
@@ -231,7 +233,7 @@ with tab1:
         else:
             st.warning("No occurrence data available for the selected date range or filters. Try adjusting the date range, alias, or cluster filters, or check your input file.")
 
-with tab2:
+elif selected_tab == "CoOccurrence":
     date_range = show_global_sidebar(tab_key="coocc")
     st.sidebar.header("Customization")
     color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="coocc_color_scale")
@@ -372,7 +374,7 @@ with tab2:
         else:
             st.warning("No co-occurrence data available for the selected date range or filters. Try adjusting the date range, alias, or cluster filters, or check your input file.")
 
-with tab3:
+elif selected_tab == "Geo Map":
     date_range = show_global_sidebar(tab_key="geo")
     st.sidebar.header("Customization")
     color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="geo_color_scale")
@@ -430,8 +432,7 @@ with tab3:
         else:
             st.warning("No country data available for the selected date range. Try adjusting filters or check your input file.")
 
-
-with tab4:
+elif selected_tab == "Sankey":
     date_range = show_global_sidebar(tab_key="sankey")
     st.sidebar.header("Customization")
     color_scale = st.sidebar.selectbox("Color Scale", ["Viridis", "Inferno", "YlGnBu", "Cividis"], key="sankey_color_scale")
