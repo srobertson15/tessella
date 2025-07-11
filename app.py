@@ -11,8 +11,9 @@ st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
 # --- Welcome message in sidebar (robust for Streamlit Cloud) ---
-st.sidebar.info(
-    """### Welcome to the Tessella demo!
+st.sidebar.markdown(
+    """
+**Welcome to the Tessella demo!**
 
 Explore interactive scientific keyword mapping, clustering, and visualization.
 
