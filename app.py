@@ -37,7 +37,7 @@ def check_file(file, name):
         return None
 def demo_path(filename):
     return os.path.join(DEMO_DATA_DIR, filename)
-st.sidebar.markdown("### Upload Data Folder (ZIP)")
+
 def get_csv_from_zip(zip_file, filename):
     if zip_file is None:
         # Fallback to demo data
