@@ -10,6 +10,9 @@ import os
 st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
+# --- DEPLOYMENT TEST WARNING ---
+st.warning("DEPLOY TEST: If you see this message, your app is running the latest code!")
+
 
 # --- Folder upload for all required CSVs ---
 import zipfile
