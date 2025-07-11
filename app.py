@@ -15,8 +15,8 @@ st.title("Tech Mapping Dashboard")
 import zipfile
 import tempfile
 
-st.sidebar.markdown("### Upload Data Folder (ZIP)")
 
+st.sidebar.markdown("### Upload Data Folder (ZIP)")
 # --- Welcome message in sidebar (robust for Streamlit Cloud) ---
 st.sidebar.info(
     """
@@ -25,8 +25,7 @@ st.sidebar.info(
 Explore interactive scientific keyword mapping, clustering, and visualization.\n\nThe bundled demo data has been automatically extracted from nearly 400k clean fuels publications.\n\nFind different filtering, scaling, and sorting options in the sidebar. Some charts may take a few seconds to load, and some data may not be shown due to the large dataset size.
 """
 )
-
-uploaded_zip = st.sidebar.file_uploader("Upload a ZIP folder containing all 4 required CSVs", type=["zip"])
+uploaded_zip = st.sidebar.file_uploader("Upload a ZIP folder containing all 4 required CSVs", type=["zip"], key="main_zip_uploader")
 
 # --- Demo data fallback logic ---
 DEMO_DATA_DIR = os.path.join(os.path.dirname(__file__), "demo_data")
@@ -34,12 +33,8 @@ def demo_path(filename):
     return os.path.join(DEMO_DATA_DIR, filename)
 
 
-# --- Folder upload for all required CSVs ---
-import zipfile
-import tempfile
-
 st.sidebar.markdown("### Upload Data Folder (ZIP)")
-uploaded_zip = st.sidebar.file_uploader("Upload a ZIP folder containing all 4 required CSVs", type=["zip"])
+
 
 def get_csv_from_zip(zip_file, filename):
     if zip_file is None:
