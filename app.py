@@ -10,17 +10,11 @@ import os
 st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
-# --- DEPLOYMENT TEST WARNING ---
-st.warning("DEPLOY TEST: If you see this message, your app is running the latest code!")
-
 
 # --- Folder upload for all required CSVs ---
 import zipfile
 import tempfile
 
-
-st.sidebar.markdown("### Upload Data Folder (ZIP)")
-# --- Welcome message in sidebar (robust for Streamlit Cloud) ---
 st.sidebar.info(
     """
 **Welcome to the Tessella demo!**
@@ -28,16 +22,44 @@ st.sidebar.info(
 Explore interactive scientific keyword mapping, clustering, and visualization.\n\nThe bundled demo data has been automatically extracted from nearly 400k clean fuels publications.\n\nFind different filtering, scaling, and sorting options in the sidebar. Some charts may take a few seconds to load, and some data may not be shown due to the large dataset size.
 """
 )
+
+def check_file(file, name):
+    if file is None:
+        missing_files.append(name)
+        return None
+    try:
+        df = pd.read_csv(file)
+        if df.empty:
+            empty_files.append(name)
+        return df
+    except Exception:
+        missing_files.append(name)
+        return None
+def demo_path(filename):
+    return os.path.join(DEMO_DATA_DIR, filename)
+st.sidebar.markdown("### Upload Data Folder (ZIP)")
+def get_csv_from_zip(zip_file, filename):
+    if zip_file is None:
+        # Fallback to demo data
+        try:
+            return open(demo_path(filename), "rb")
+        except Exception:
+            return None
+    with zipfile.ZipFile(zip_file) as z:
+        if filename in z.namelist():
+            return z.open(filename)
+        else:
+            return None
+
+st.sidebar.markdown("### Upload Data Folder (ZIP)")
+# --- Welcome message in sidebar (robust for Streamlit Cloud) ---
+
 uploaded_zip = st.sidebar.file_uploader("Upload a ZIP folder containing all 4 required CSVs", type=["zip"], key="main_zip_uploader")
 
 # --- Demo data fallback logic ---
 DEMO_DATA_DIR = os.path.join(os.path.dirname(__file__), "demo_data")
 def demo_path(filename):
     return os.path.join(DEMO_DATA_DIR, filename)
-
-
-st.sidebar.markdown("### Upload Data Folder (ZIP)")
-
 
 def get_csv_from_zip(zip_file, filename):
     if zip_file is None:
@@ -52,10 +74,47 @@ def get_csv_from_zip(zip_file, filename):
         else:
             return None
 
-occ_file = get_csv_from_zip(uploaded_zip, "lookup_occurrence.csv")
-coocc_file = get_csv_from_zip(uploaded_zip, "lookup_cooccurrence.csv")
-country_file = get_csv_from_zip(uploaded_zip, "lookup_country_occurrence.csv")
-fact_alias_cluster_file = get_csv_from_zip(uploaded_zip, "fact_alias_cluster.csv")
+# --- Robust error/warning messages for missing or empty files ---
+missing_files = []
+empty_files = []
+def check_file(file, name):
+    if file is None:
+        missing_files.append(name)
+        return None
+    try:
+        df = pd.read_csv(file)
+        if df.empty:
+            empty_files.append(name)
+        return df
+    except Exception:
+        missing_files.append(name)
+        return None
+
+
+# --- Move get_csv_from_zip definition above all uses ---
+def get_csv_from_zip(zip_file, filename):
+    if zip_file is None:
+        # Fallback to demo data
+        try:
+            return open(demo_path(filename), "rb")
+        except Exception:
+            return None
+    with zipfile.ZipFile(zip_file) as z:
+        if filename in z.namelist():
+            return z.open(filename)
+        else:
+            return None
+
+occ = check_file(get_csv_from_zip(uploaded_zip, "lookup_occurrence.csv"), "lookup_occurrence.csv")
+coocc = check_file(get_csv_from_zip(uploaded_zip, "lookup_cooccurrence.csv"), "lookup_cooccurrence.csv")
+country = check_file(get_csv_from_zip(uploaded_zip, "lookup_country_occurrence.csv"), "lookup_country_occurrence.csv")
+fact_alias_cluster = check_file(get_csv_from_zip(uploaded_zip, "fact_alias_cluster.csv"), "fact_alias_cluster.csv")
+
+if uploaded_zip is not None:
+    if missing_files:
+        st.sidebar.error(f"Missing or unreadable file(s) in ZIP: {', '.join(missing_files)}. Please check the file names and format.")
+    if empty_files:
+        st.sidebar.warning(f"Empty file(s) in ZIP: {', '.join(empty_files)}. Charts may not display.")
 
 
 
@@ -64,14 +123,8 @@ tab_names = ["Occurrence", "CoOccurrence", "Geo Map", "Sankey"]
 selected_tab = st.sidebar.radio("Select Chart", tab_names, key="main_tab_selector")
 
 # --- Load Data ---
-@st.cache_data
-def load_csv(file):
-    return pd.read_csv(file) if file else None
 
-occ = load_csv(occ_file)
-coocc = load_csv(coocc_file)
-country = load_csv(country_file)
-fact_alias_cluster = load_csv(fact_alias_cluster_file)
+# Remove legacy load_csv and old variable assignments
 
 def show_global_sidebar(tab_key=None):
     # --- Global Date Range Slider (works for all tabs) ---
