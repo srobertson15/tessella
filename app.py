@@ -11,9 +11,9 @@ st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
 # --- Welcome message in sidebar (robust for Streamlit Cloud) ---
-st.sidebar.markdown(
+st.sidebar.info(
     """
-**Welcome to the Tessella demo!**
+Welcome to the Tessella demo!
 
 Explore interactive scientific keyword mapping, clustering, and visualization.
 
@@ -521,8 +521,6 @@ elif selected_tab == "Sankey":
                     st.warning("No data available for Sankey plot after filtering. Try adjusting filters or check your data.")
             else:
                 st.warning("No country data available for Sankey plot after filtering. Try adjusting filters or check your data.")
-
-# --- Customization Controls ---
 
 
 st.sidebar.markdown("---")
