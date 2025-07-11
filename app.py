@@ -11,16 +11,22 @@ st.set_page_config(layout="wide")
 st.title("Tech Mapping Dashboard")
 
 
+# --- Folder upload for all required CSVs ---
+import zipfile
+import tempfile
+
+st.sidebar.markdown("### Upload Data Folder (ZIP)")
+
 # --- Welcome message in sidebar (robust for Streamlit Cloud) ---
-st.sidebar.text("")  # Blank line to activate sidebar rendering on Streamlit Cloud
-st.sidebar.markdown(
+st.sidebar.info(
     """
 **Welcome to the Tessella demo!**
 
 Explore interactive scientific keyword mapping, clustering, and visualization.\n\nThe bundled demo data has been automatically extracted from nearly 400k clean fuels publications.\n\nFind different filtering, scaling, and sorting options in the sidebar. Some charts may take a few seconds to load, and some data may not be shown due to the large dataset size.
 """
 )
-st.sidebar.text("")  # Another blank line for extra compatibility
+
+uploaded_zip = st.sidebar.file_uploader("Upload a ZIP folder containing all 4 required CSVs", type=["zip"])
 
 # --- Demo data fallback logic ---
 DEMO_DATA_DIR = os.path.join(os.path.dirname(__file__), "demo_data")
